@@ -44,11 +44,14 @@ def fill_standby_guardian():
             "Location 1": data.get("child_property_location", "____"),
         }
 
-        reader = PdfReader(TEMPLATE_PDF)
-        writer = PdfWriter()
+       reader = PdfReader(TEMPLATE_PDF)
+writer = PdfWriter()
 
-        for page in reader.pages:
-            writer.add_page(page)
+writer.clone_reader_document_root(reader)
+writer.set_need_appearances_writer(True)
+
+for page in writer.pages:
+    writer.update_page_form_field_values(page, field_data)
 
         writer.set_need_appearances_writer(True)
 
