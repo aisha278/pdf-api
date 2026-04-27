@@ -12,51 +12,43 @@ def fill_standby_guardian():
     try:
         data = request.json or {}
 
-        field_data = {
-            "Your Name 1": data.get("parent_names", ""),
-            "Address 1": data.get("parent_address", ""),
-            "Telephone Number 1": data.get("parent_phone", ""),
-            "E-mail 1": data.get("parent_email", ""),
-
-            "Name of Standby Guardian": data.get("standby_guardian_name", ""),
-            "Address 2": data.get("standby_guardian_address", ""),
-            "Telephone Number 2": data.get("standby_guardian_phone", ""),
-            "Email 2": data.get("standby_guardian_email", ""),
-
-            "Name of Alternate guardian": data.get("alternate_guardian_name", ""),
-
-            "Name of Children 1": data.get("child1_name", ""),
-            "Date of Birth 1": data.get("child1_dob", ""),
-            "Name of Children 2": data.get("child2_name", ""),
-            "Date of Birth 2": data.get("child2_dob", ""),
-            "Name of Children 3": data.get("child3_name", ""),
-            "Date of Birth 3": data.get("child3_dob", ""),
-            "Name of Children 4": data.get("child4_name", ""),
-            "Date of Birth 4": data.get("child4_dob", ""),
-
-            "Name of Person with Parental Rights": data.get("other_parent_name", "NONE"),
-            "Relationship to Minor Child": data.get("other_parent_relationship", "N/A"),
-            "Name of Person with Parental Rights 2": data.get("other_parent_name_2", ""),
-            "Relationship to Minor child 2": data.get("other_parent_relationship_2", ""),
-
-            "Box 3": data.get("guardian_person_limits", "NONE"),
-            "Box 4": data.get("guardian_property_limits", "NONE"),
-            "Location 1": data.get("child_property_location", "____"),
-            
-                "Your Name 1": data.get("parent_names", ""),
+     field_data = {
+    "Your Name 1": data.get("parent_names", ""),
     "Address 1": data.get("parent_address", ""),
     "Telephone Number 1": data.get("parent_phone", ""),
     "E-mail 1": data.get("parent_email", ""),
 
-    # 👇 ADD THESE (signature page address section)
     "Street Address 1": data.get("parent_address", ""),
     "City, State, Zip 1": data.get("parent_city_state_zip", ""),
 
-    # if there is a second parent (optional)
-    "Street Address 2": data.get("parent2_address", data.get("parent_address", "")),
-    "City, State, Zip 2": data.get("parent2_city_state_zip", data.get("parent_city_state_zip", "")),
+    "Street Address 2": data.get("parent2_address", ""),
+    "City, State, Zip 2": data.get("parent2_city_state_zip", ""),
 
-        }
+    "Name of Standby Guardian": data.get("standby_guardian_name", ""),
+    "Address 2": data.get("standby_guardian_address", ""),
+    "Telephone Number 2": data.get("standby_guardian_phone", ""),
+    "Email 2": data.get("standby_guardian_email", ""),
+
+    "Name of Alternate guardian": data.get("alternate_guardian_name", ""),
+
+    "Name of Children 1": data.get("child1_name", ""),
+    "Date of Birth 1": data.get("child1_dob", ""),
+    "Name of Children 2": data.get("child2_name", ""),
+    "Date of Birth 2": data.get("child2_dob", ""),
+    "Name of Children 3": data.get("child3_name", ""),
+    "Date of Birth 3": data.get("child3_dob", ""),
+    "Name of Children 4": data.get("child4_name", ""),
+    "Date of Birth 4": data.get("child4_dob", ""),
+
+    "Name of Person with Parental Rights": data.get("other_parent_name", "NONE"),
+    "Relationship to Minor Child": data.get("other_parent_relationship", "N/A"),
+    "Name of Person with Parental Rights 2": data.get("other_parent_name_2", ""),
+    "Relationship to Minor child 2": data.get("other_parent_relationship_2", ""),
+
+    "Box 3": data.get("guardian_person_limits", "NONE"),
+    "Box 4": data.get("guardian_property_limits", "NONE"),
+    "Location 1": data.get("child_property_location", "____"),
+}
 
         reader = PdfReader(TEMPLATE_PDF)
         writer = PdfWriter()
