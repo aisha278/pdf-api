@@ -118,16 +118,15 @@ def fill_appointed_attorney_invoice():
         hours = str(data.get("hours", ""))
         total = str(data.get("total", ""))
 
-        # Invoice number format
+        formatted_date = format_assignment_date(assignment_date)
         invoice_number = "ATT" + format_invoice_date_for_number(assignment_date) + "AM"
-        today = datetime.now().strftime("%m/%d/%Y")
 
         field_data = {
             "Invoice Number": invoice_number,
-            "Invoice Date": today,
-            "Assignment Date": format_assignment_date(assignment_date),
-            "Start Time": start_time,
-            "End Time": end_time,
+            "Invoice Date": formatted_date,
+            "Assignment Date": formatted_date,
+            "Assignment Start Time": start_time,
+            "Assignment End Time": end_time,
             "Rate of Compensation": hours,
             "Total Reimbursement": total,
             "Commissioner Location": "Anne Arundel",
