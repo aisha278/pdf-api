@@ -42,6 +42,20 @@ def fill_standby_guardian():
             "Box 3": data.get("guardian_person_limits", "NONE"),
             "Box 4": data.get("guardian_property_limits", "NONE"),
             "Location 1": data.get("child_property_location", "____"),
+            
+                "Your Name 1": data.get("parent_names", ""),
+    "Address 1": data.get("parent_address", ""),
+    "Telephone Number 1": data.get("parent_phone", ""),
+    "E-mail 1": data.get("parent_email", ""),
+
+    # 👇 ADD THESE (signature page address section)
+    "Street Address 1": data.get("parent_address", ""),
+    "City, State, Zip 1": data.get("parent_city_state_zip", ""),
+
+    # if there is a second parent (optional)
+    "Street Address 2": data.get("parent2_address", data.get("parent_address", "")),
+    "City, State, Zip 2": data.get("parent2_city_state_zip", data.get("parent_city_state_zip", "")),
+
         }
 
         reader = PdfReader(TEMPLATE_PDF)
