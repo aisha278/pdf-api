@@ -127,9 +127,16 @@ def fill_appointed_attorney_invoice():
             "Assignment Date": formatted_date,
             "Assignment Start Time": start_time,
             "Assignment End Time": end_time,
+        
+            # #16 hours worked
             "Enter the Hours for Compensation": hours,
+        
+            # #17 amount earned
             "Total Rate of Compensation": total,
+        
+            # #23 total reimbursement
             "Total Reimbursement": total,
+        
             "Commissioner Location": "Anne Arundel",
         }
 
