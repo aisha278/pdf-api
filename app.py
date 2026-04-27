@@ -191,7 +191,11 @@ def list_fields():
     fields = reader.get_fields()
     return jsonify(list(fields.keys()))
 
-
+@app.route("/list-invoice-fields", methods=["GET"])
+def list_invoice_fields():
+    reader = PdfReader(TEMPLATE_PDF_INVOICE)
+    fields = reader.get_fields()
+    return jsonify(list(fields.keys()))
 # =========================================================
 # RUN
 # =========================================================
