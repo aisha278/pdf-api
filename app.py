@@ -2,6 +2,7 @@ from flask import Flask, request, send_file, jsonify
 from pypdf import PdfReader, PdfWriter
 import tempfile
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -14,7 +15,7 @@ def fill_standby_guardian():
         data = request.json or {}
 
         # -----------------------------
-        # MAIN FIELD MAPPING
+        # FIELD MAPPING
         # -----------------------------
         field_data = {
             # Parent info
@@ -23,7 +24,7 @@ def fill_standby_guardian():
             "Telephone Number 1": data.get("parent_phone", ""),
             "E-mail 1": data.get("parent_email", ""),
 
-            # ✅ Signature page address section (THIS was missing before)
+            # ✅ Signature page address section
             "Street Address 1": data.get("parent_address", ""),
             "City, State, Zip 1": data.get("parent_city_state_zip", ""),
 
@@ -70,7 +71,7 @@ def fill_standby_guardian():
         writer.clone_reader_document_root(reader)
         writer.set_need_appearances_writer(True)
 
-        # Fill text fields
+        # Fill fields
         for page in writer.pages:
             writer.update_page_form_field_values(page, field_data)
 
@@ -105,10 +106,19 @@ def fill_standby_guardian():
         with open(output.name, "wb") as f:
             writer.write(f)
 
+        # -----------------------------
+        # FILE NAME WITH CLIENT + DATE
+        # -----------------------------
+        client_name = data.get("parent_names", "client")
+        safe_name = client_name.replace(" ", "_")
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+        filename = f"{safe_name}_{timestamp}.pdf"
+
         return send_file(
             output.name,
             as_attachment=True,
-            download_name="filled_standby_guardian.pdf",
+            download_name=filename,
             mimetype="application/pdf"
         )
 
