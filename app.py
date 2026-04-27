@@ -44,15 +44,10 @@ def fill_standby_guardian():
             "Location 1": data.get("child_property_location", "____"),
         }
 
-       reader = PdfReader(TEMPLATE_PDF)
-writer = PdfWriter()
+        reader = PdfReader(TEMPLATE_PDF)
+        writer = PdfWriter()
 
-writer.clone_reader_document_root(reader)
-writer.set_need_appearances_writer(True)
-
-for page in writer.pages:
-    writer.update_page_form_field_values(page, field_data)
-
+        writer.clone_reader_document_root(reader)
         writer.set_need_appearances_writer(True)
 
         for page in writer.pages:
@@ -104,4 +99,3 @@ def list_fields():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
