@@ -176,7 +176,7 @@ def fill_tod_deed():
             "Printed name_2":                 data.get("owner2_name", ""),
             "Mailing address":                data.get("owner1_address", ""),
             "Mailing address_2":              data.get("owner2_address", ""),
-            "REVOCABLE TRANSFERONDEATH DEED": data.get("legal_description", ""),
+            "Legal Description":              data.get("legal_description", ""),
             "Trust name":                     data.get("primary_beneficiary_name", ""),
             "Mailing address if available":   data.get("primary_beneficiary_address", ""),
             "Alt Beneficiary  name":          data.get("alt_beneficiary_name", ""),
