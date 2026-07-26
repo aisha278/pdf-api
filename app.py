@@ -1,5 +1,6 @@
 from flask import Flask, request, send_file, jsonify
 from pypdf import PdfReader, PdfWriter
+from io import BytesIO
 import tempfile
 import os
 from datetime import datetime
@@ -8,7 +9,8 @@ app = Flask(__name__)
 
 # --- FILES ---
 TEMPLATE_PDF_GUARDIAN = "ccgn041prefilled.pdf"
-TEMPLATE_PDF_INVOICE = "2026AMohammedAAPInvoicetemplate.pdf"
+TEMPLATE_PDF_INVOICE  = "2026AMohammedAAPInvoicetemplate.pdf"
+TEMPLATE_PDF_TOD      = "ROD39REVOCABLETRANSFERONDEATHDEED-FORM_editable.pdf"
 
 
 # =========================================================
@@ -20,41 +22,34 @@ def fill_standby_guardian():
         data = request.json or {}
 
         field_data = {
-            "Your Name 1": data.get("parent_names", ""),
-            "Address 1": data.get("parent_address", ""),
-            "Telephone Number 1": data.get("parent_phone", ""),
-            "E-mail 1": data.get("parent_email", ""),
-
-            "Street Address 1": data.get("parent_address", ""),
-            "City, State, Zip 1": data.get("parent_city_state_zip", ""),
-
-            "Street Address 2": data.get("parent2_address", ""),
-            "City, State, Zip 2": data.get("parent2_city_state_zip", ""),
-
-            "Name of Standby Guardian": data.get("standby_guardian_name", ""),
-            "Address 2": data.get("standby_guardian_address", ""),
-            "Telephone Number 2": data.get("standby_guardian_phone", ""),
-            "Email 2": data.get("standby_guardian_email", ""),
-
-            "Name of Alternate guardian": data.get("alternate_guardian_name", ""),
-
-            "Name of Children 1": data.get("child1_name", ""),
-            "Date of Birth 1": data.get("child1_dob", ""),
-            "Name of Children 2": data.get("child2_name", ""),
-            "Date of Birth 2": data.get("child2_dob", ""),
-            "Name of Children 3": data.get("child3_name", ""),
-            "Date of Birth 3": data.get("child3_dob", ""),
-            "Name of Children 4": data.get("child4_name", ""),
-            "Date of Birth 4": data.get("child4_dob", ""),
-
-            "Name of Person with Parental Rights": data.get("other_parent_name", "NONE"),
-            "Relationship to Minor Child": data.get("other_parent_relationship", "N/A"),
+            "Your Name 1":                        data.get("parent_names", ""),
+            "Address 1":                          data.get("parent_address", ""),
+            "Telephone Number 1":                 data.get("parent_phone", ""),
+            "E-mail 1":                           data.get("parent_email", ""),
+            "Street Address 1":                   data.get("parent_address", ""),
+            "City, State, Zip 1":                 data.get("parent_city_state_zip", ""),
+            "Street Address 2":                   data.get("parent2_address", ""),
+            "City, State, Zip 2":                 data.get("parent2_city_state_zip", ""),
+            "Name of Standby Guardian":           data.get("standby_guardian_name", ""),
+            "Address 2":                          data.get("standby_guardian_address", ""),
+            "Telephone Number 2":                 data.get("standby_guardian_phone", ""),
+            "Email 2":                            data.get("standby_guardian_email", ""),
+            "Name of Alternate guardian":         data.get("alternate_guardian_name", ""),
+            "Name of Children 1":                 data.get("child1_name", ""),
+            "Date of Birth 1":                    data.get("child1_dob", ""),
+            "Name of Children 2":                 data.get("child2_name", ""),
+            "Date of Birth 2":                    data.get("child2_dob", ""),
+            "Name of Children 3":                 data.get("child3_name", ""),
+            "Date of Birth 3":                    data.get("child3_dob", ""),
+            "Name of Children 4":                 data.get("child4_name", ""),
+            "Date of Birth 4":                    data.get("child4_dob", ""),
+            "Name of Person with Parental Rights":   data.get("other_parent_name", "NONE"),
+            "Relationship to Minor Child":           data.get("other_parent_relationship", "N/A"),
             "Name of Person with Parental Rights 2": data.get("other_parent_name_2", ""),
-            "Relationship to Minor child 2": data.get("other_parent_relationship_2", ""),
-
-            "Box 3": data.get("guardian_person_limits", "NONE"),
-            "Box 4": data.get("guardian_property_limits", "NONE"),
-            "Location 1": data.get("child_property_location", "____"),
+            "Relationship to Minor child 2":         data.get("other_parent_relationship_2", ""),
+            "Box 3":                              data.get("guardian_person_limits", "NONE"),
+            "Box 4":                              data.get("guardian_property_limits", "NONE"),
+            "Location 1":                         data.get("child_property_location", "____"),
         }
 
         reader = PdfReader(TEMPLATE_PDF_GUARDIAN)
@@ -67,8 +62,8 @@ def fill_standby_guardian():
             writer.update_page_form_field_values(page, field_data)
 
         checkbox_values = {
-            "Check Box94": "/Yes",
-            "Check Box97": "/Yes",
+            "Check Box94":  "/Yes",
+            "Check Box97":  "/Yes",
             "Check Box114": "/Yes",
             "Check Box115": "/Yes",
             "Check Box116": "/Yes",
@@ -113,31 +108,24 @@ def fill_appointed_attorney_invoice():
         data = request.json or {}
 
         assignment_date = data.get("assignment_date", "")
-        start_time = data.get("start_time", "")
-        end_time = data.get("end_time", "")
-        hours = str(data.get("hours", ""))
-        total = str(data.get("total", ""))
+        start_time      = data.get("start_time", "")
+        end_time        = data.get("end_time", "")
+        hours           = str(data.get("hours", ""))
+        total           = str(data.get("total", ""))
 
-        formatted_date = format_assignment_date(assignment_date)
-        invoice_number = "ATT" + format_invoice_date_for_number(assignment_date) + "AM"
+        formatted_date  = format_assignment_date(assignment_date)
+        invoice_number  = "ATT" + format_invoice_date_for_number(assignment_date) + "AM"
 
         field_data = {
-            "Invoice Number": invoice_number,
-            "Invoice Date": formatted_date,
-            "Assignment Date": formatted_date,
-            "Assignment Start Time": start_time,
-            "Assignment End Time": end_time,
-        
-            # #16 hours worked
+            "Invoice Number":                 invoice_number,
+            "Invoice Date":                   formatted_date,
+            "Assignment Date":                formatted_date,
+            "Assignment Start Time":          start_time,
+            "Assignment End Time":            end_time,
             "Enter the Hours for Compensation": hours,
-        
-            # #17 amount earned
-            "Total Rate of Compensation": total,
-        
-            # #23 total reimbursement
-            "Total Reimbursement": total,
-        
-            "Commissioner Location": "Anne Arundel",
+            "Total Rate of Compensation":     total,
+            "Total Reimbursement":            total,
+            "Commissioner Location":          "Anne Arundel",
         }
 
         reader = PdfReader(TEMPLATE_PDF_INVOICE)
@@ -168,57 +156,55 @@ def fill_appointed_attorney_invoice():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 # =========================================================
 # 3. DC REVOCABLE TRANSFER ON DEATH DEED PDF
 # =========================================================
-@app.route('/fill-tod-deed', methods=['POST'])
+@app.route("/fill-tod-deed", methods=["POST"])
 def fill_tod_deed():
     try:
         data = request.get_json()
 
-        template_path = os.path.join(
-            os.path.dirname(__file__),
-            'ROD39REVOCABLETRANSFERONDEATHDEED-FORM_editable.pdf'
-        )
-
-        reader = PdfReader(template_path)
+        reader = PdfReader(TEMPLATE_PDF_TOD)
         writer = PdfWriter()
 
-        for page in reader.pages:
-            writer.add_page(page)
+        writer.clone_reader_document_root(reader)
+        writer.set_need_appearances_writer(True)
 
-        # Exact field names from the fillable PDF
         field_values = {
-            "Printed name":                    data.get("owner1_name", ""),
-            "Printed name_2":                  data.get("owner2_name", ""),
-            "Mailing address":                 data.get("owner1_address", ""),
-            "Mailing address_2":               data.get("owner2_address", ""),
-            "REVOCABLE TRANSFERONDEATH DEED":  data.get("legal_description", ""),
-            "Trust name":                      data.get("primary_beneficiary_name", ""),
-            "Mailing address if available":    data.get("primary_beneficiary_address", ""),
-            "Alt Beneficiary  name":           data.get("alt_beneficiary_name", ""),
-            "Mailing address if available_2":  data.get("alt_beneficiary_address", ""),
+            "Printed name":                   data.get("owner1_name", ""),
+            "Printed name_2":                 data.get("owner2_name", ""),
+            "Mailing address":                data.get("owner1_address", ""),
+            "Mailing address_2":              data.get("owner2_address", ""),
+            "REVOCABLE TRANSFERONDEATH DEED": data.get("legal_description", ""),
+            "Trust name":                     data.get("primary_beneficiary_name", ""),
+            "Mailing address if available":   data.get("primary_beneficiary_address", ""),
+            "Alt Beneficiary  name":          data.get("alt_beneficiary_name", ""),
+            "Mailing address if available_2": data.get("alt_beneficiary_address", ""),
         }
 
-        writer.update_page_form_field_values(
-            writer.pages[0],
-            field_values,
-            auto_regenerate=False
-        )
+        for page in writer.pages:
+            writer.update_page_form_field_values(page, field_values)
 
-        output_buffer = BytesIO()
-        writer.write(output_buffer)
-        output_buffer.seek(0)
+        output = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+        output.close()
+
+        with open(output.name, "wb") as f:
+            writer.write(f)
+
+        filename = "DC_TOD_Deed_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".pdf"
 
         return send_file(
-            output_buffer,
-            mimetype='application/pdf',
+            output.name,
             as_attachment=True,
-            download_name='DC_TOD_Deed.pdf'
+            download_name=filename,
+            mimetype="application/pdf"
         )
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
 # =========================================================
 # HELPERS
 # =========================================================
@@ -227,7 +213,7 @@ def format_invoice_date_for_number(date_text):
         clean = date_text.split(",", 1)[1].strip()
         dt = datetime.strptime(clean, "%B %d, %Y")
         return dt.strftime("%m%d%Y")
-    except:
+    except Exception:
         return datetime.now().strftime("%m%d%Y")
 
 
@@ -236,12 +222,12 @@ def format_assignment_date(date_text):
         clean = date_text.split(",", 1)[1].strip()
         dt = datetime.strptime(clean, "%B %d, %Y")
         return dt.strftime("%m/%d/%Y")
-    except:
+    except Exception:
         return date_text
 
 
 # =========================================================
-# DEBUG ROUTE
+# DEBUG ROUTES
 # =========================================================
 @app.route("/list-fields", methods=["GET"])
 def list_fields():
@@ -249,11 +235,21 @@ def list_fields():
     fields = reader.get_fields()
     return jsonify(list(fields.keys()))
 
+
 @app.route("/list-invoice-fields", methods=["GET"])
 def list_invoice_fields():
     reader = PdfReader(TEMPLATE_PDF_INVOICE)
     fields = reader.get_fields()
     return jsonify(list(fields.keys()))
+
+
+@app.route("/list-tod-fields", methods=["GET"])
+def list_tod_fields():
+    reader = PdfReader(TEMPLATE_PDF_TOD)
+    fields = reader.get_fields()
+    return jsonify(list(fields.keys()))
+
+
 # =========================================================
 # RUN
 # =========================================================
