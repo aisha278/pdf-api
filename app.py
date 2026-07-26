@@ -22,16 +22,16 @@ def fill_standby_guardian():
         data = request.json or {}
 
         field_data = {
-            "Client Names":                     data.get("parent_names", ""),
+            "Client Names1":                      data.get("parent_names", ""),
             "Street Address 1":                   data.get("parent_address", ""),
             "City, State, Zip 1":                 data.get("parent_city_state_zip", ""),
             "Street Address 2":                   data.get("parent2_address", ""),
             "City, State, Zip 2":                 data.get("parent2_city_state_zip", ""),
-            "Name of Standby Guardian":         data.get("standby_guardian_name", ""),
+            "Name of Standby Guardian1":          data.get("standby_guardian_name", ""),
             "primary guardian address":           data.get("standby_guardian_address", ""),
             "primary guardian Telephone Number":  data.get("standby_guardian_phone", ""),
             "primary guardian  E-mail":           data.get("standby_guardian_email", ""),
-            "Name of Alternate guardian":       data.get("alternate_guardian_name", ""),
+            "Name of Alternate guardian1":        data.get("alternate_guardian_name", ""),
             "Alternate guardian Address":         data.get("alternate_guardian_address", ""),
             "Telephone Number 2":                 data.get("alternate_guardian_phone", ""),
             "Alternate guardian Email":           data.get("alternate_guardian_email", ""),
@@ -51,7 +51,6 @@ def fill_standby_guardian():
             "Box 4":                              data.get("guardian_property_limits", "NONE"),
             "Location 1":                         data.get("child_property_location", "____"),
         }
-
           
 
         reader = PdfReader(TEMPLATE_PDF_GUARDIAN)
