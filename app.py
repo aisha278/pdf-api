@@ -21,22 +21,20 @@ def fill_standby_guardian():
     try:
         data = request.json or {}
 
-
-
-            field_data = {
-            "Client Names":                       data.get("parent_names", ""),
+field_data = {
+            "Client Names#0":                     data.get("parent_names", ""),
             "Street Address 1":                   data.get("parent_address", ""),
             "City, State, Zip 1":                 data.get("parent_city_state_zip", ""),
             "Street Address 2":                   data.get("parent2_address", ""),
             "City, State, Zip 2":                 data.get("parent2_city_state_zip", ""),
-            "Name of Standby Guardian":           data.get("standby_guardian_name", ""),
+            "Name of Standby Guardian#0":         data.get("standby_guardian_name", ""),
             "primary guardian address":           data.get("standby_guardian_address", ""),
             "primary guardian Telephone Number":  data.get("standby_guardian_phone", ""),
             "primary guardian  E-mail":           data.get("standby_guardian_email", ""),
-            "Name of Alternate guardian":         data.get("alternate_guardian_name", ""),
+            "Name of Alternate guardian#0":       data.get("alternate_guardian_name", ""),
             "Alternate guardian Address":         data.get("alternate_guardian_address", ""),
             "Telephone Number 2":                 data.get("alternate_guardian_phone", ""),
-            "Alternate guardian Email":            data.get("alternate_guardian_email", ""),
+            "Alternate guardian Email":           data.get("alternate_guardian_email", ""),
             "Name of Children 1":                 data.get("child1_name", ""),
             "Date of Birth 1":                    data.get("child1_dob", ""),
             "Name of Children 2":                 data.get("child2_name", ""),
@@ -53,6 +51,8 @@ def fill_standby_guardian():
             "Box 4":                              data.get("guardian_property_limits", "NONE"),
             "Location 1":                         data.get("child_property_location", "____"),
         }
+
+          
         }
 
         reader = PdfReader(TEMPLATE_PDF_GUARDIAN)
