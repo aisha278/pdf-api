@@ -53,7 +53,6 @@ field_data = {
         }
 
           
-        }
 
         reader = PdfReader(TEMPLATE_PDF_GUARDIAN)
         writer = PdfWriter()
