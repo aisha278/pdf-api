@@ -168,7 +168,57 @@ def fill_appointed_attorney_invoice():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# =========================================================
+# 3. DC REVOCABLE TRANSFER ON DEATH DEED PDF
+# =========================================================
+@app.route('/fill-tod-deed', methods=['POST'])
+def fill_tod_deed():
+    try:
+        data = request.get_json()
 
+        template_path = os.path.join(
+            os.path.dirname(__file__),
+            'ROD39REVOCABLETRANSFERONDEATHDEED-FORM_editable.pdf'
+        )
+
+        reader = PdfReader(template_path)
+        writer = PdfWriter()
+
+        for page in reader.pages:
+            writer.add_page(page)
+
+        # Exact field names from the fillable PDF
+        field_values = {
+            "Printed name":                    data.get("owner1_name", ""),
+            "Printed name_2":                  data.get("owner2_name", ""),
+            "Mailing address":                 data.get("owner1_address", ""),
+            "Mailing address_2":               data.get("owner2_address", ""),
+            "REVOCABLE TRANSFERONDEATH DEED":  data.get("legal_description", ""),
+            "Trust name":                      data.get("primary_beneficiary_name", ""),
+            "Mailing address if available":    data.get("primary_beneficiary_address", ""),
+            "Alt Beneficiary  name":           data.get("alt_beneficiary_name", ""),
+            "Mailing address if available_2":  data.get("alt_beneficiary_address", ""),
+        }
+
+        writer.update_page_form_field_values(
+            writer.pages[0],
+            field_values,
+            auto_regenerate=False
+        )
+
+        output_buffer = BytesIO()
+        writer.write(output_buffer)
+        output_buffer.seek(0)
+
+        return send_file(
+            output_buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name='DC_TOD_Deed.pdf'
+        )
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 # =========================================================
 # HELPERS
 # =========================================================
