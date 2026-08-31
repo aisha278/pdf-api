@@ -210,15 +210,15 @@ def fill_tod_deed():
 
 
 import re
- 
+
 # ---------------------------------------------------------------------
 # PARENTING PLAN — shared helpers
 # ---------------------------------------------------------------------
- 
+
 def _pp_str(v):
     return "" if v is None else str(v).strip()
- 
- 
+
+
 def _pp_parse_children(raw_text):
     """Best-effort split of the free-text children answer into
     [{"name": ..., "dob": ...}, ...]."""
@@ -235,16 +235,27 @@ def _pp_parse_children(raw_text):
         if name:
             out.append({"name": name, "dob": dob})
     return out
- 
- 
+
+
 def _pp_split_address(addr):
     addr = _pp_str(addr)
     if "," in addr:
         street, rest = addr.rsplit(",", 1)
         return street.strip(), rest.strip()
     return addr, ""
- 
- 
+
+
+def _pp_split_holiday_choice(choice):
+    """Splits a holiday answer like 'Me - Every Year', 'Me – Every Year',
+    or 'Me — Every Year' into (who, when), tolerating hyphen, en-dash,
+    or em-dash as the separator, with or without surrounding spaces."""
+    choice = _pp_str(choice)
+    parts = re.split(r"\s*[-\u2013\u2014]\s*", choice, maxsplit=1)
+    who = parts[0] if parts else choice
+    when = parts[1] if len(parts) > 1 else ""
+    return who, when
+
+
 def _pp_determine_mother_father_cols(p):
     client_g = _pp_str(p.get("client_gender")).lower()
     spouse_g = _pp_str(p.get("spouse_gender")).lower()
@@ -253,8 +264,17 @@ def _pp_determine_mother_father_cols(p):
     if client_g == "male" or spouse_g == "female":
         return "parent2", "parent1"
     return "parent1", "parent2"  # unresolved — defaults client -> Mother; verify manually
- 
- 
+
+
+def _pp_relationship_label(gender):
+    g = _pp_str(gender).lower()
+    if g == "female":
+        return "Mother"
+    if g == "male":
+        return "Father"
+    return "Parent"  # unknown/other gender - fall back to the generic label
+
+
 # DC legal custody grid: row -> {both, plaintiff, defendant} checkbox names.
 # These checkboxes are unlabeled in the PDF ("Check Box37" etc.) — mapped by
 # reading each box's page/x/y position against the visible form layout.
@@ -272,7 +292,7 @@ _DC_LEGAL_CUSTODY_ROWS = {
     "custom_row_2":            {"both": "Check Box13", "plaintiff": "Check Box25", "defendant": "Check Box37"},
     "custom_row_3":            {"both": "Check Box14", "plaintiff": "Check Box26", "defendant": "Check Box38"},
 }
- 
+
 _DC_SCHEDULE_FREQUENCY = {
     "every week": "Check Box39", "every two weeks": "Check Box40", "other": "Check Box41",
 }
@@ -298,22 +318,22 @@ _MD_HOLIDAY_FIELD_MAP = {
     "fourth of july": "Fourth of July", "labor day": "Labor Day", "thanksgiving": "Thanksgiving",
     "child's birthday": "Child(ren)'s Birthdays", "mother's day": "Mother's Day", "father's day": "Father's Day",
 }
- 
- 
+
+
 def _pp_build_dc_fields(p):
     text = {}
     boxes = {}
- 
+
     text["PRINT PLAINTIFFS NAME"] = p.get("parent1_name")
     street1, csz1 = _pp_split_address(p.get("parent1_address"))
     text["STREET ADDRESS"] = street1
     text["CITY STATE AND ZIP CODE"] = csz1
- 
+
     text["PRINT DEFENDANTS NAME"] = p.get("parent2_name")
     street2, csz2 = _pp_split_address(p.get("parent2_address"))
     text["STREET ADDRESS_2"] = street2
     text["CITY STATE AND ZIP CODE_2"] = csz2
- 
+
     kids = _pp_parse_children(p.get("children_raw"))
     physical_custody_home = p.get("physical_custody_home", "")
     for i, kid in enumerate(kids[:7], start=1):
@@ -328,7 +348,7 @@ def _pp_build_dc_fields(p):
                 age = ""
         text[f"AgeRow{i}"] = age
         text[f"Where does this child liveRow{i}"] = physical_custody_home
- 
+
     lc = p.get("legal_custody_final_say", {})
     for category, choice in lc.items():
         row = _DC_LEGAL_CUSTODY_ROWS.get(category)
@@ -341,10 +361,10 @@ def _pp_build_dc_fields(p):
             boxes[row["defendant"]] = True
         elif choice == "me" or "plaintiff" in choice:
             boxes[row["plaintiff"]] = True
- 
+
     text["If you cannot agree which of you will make the final decision"] = p.get("legal_custody_tiebreaker", "")
     text["The childrens residence is with"] = physical_custody_home
- 
+
     schedule = p.get("regular_schedule", {})
     day_field = {
         "sunday": "SundayRow1", "monday": "MondayRow1", "tuesday": "TuesdayRow1",
@@ -353,14 +373,14 @@ def _pp_build_dc_fields(p):
     }
     for day, field in day_field.items():
         text[field] = schedule.get(day, "")
- 
+
     freq = _pp_str(p.get("schedule_frequency")).lower()
     if freq in _DC_SCHEDULE_FREQUENCY:
         boxes[_DC_SCHEDULE_FREQUENCY[freq]] = True
     elif freq:
         boxes[_DC_SCHEDULE_FREQUENCY["other"]] = True
         text["other"] = p.get("schedule_frequency_detail", p.get("schedule_frequency"))
- 
+
     text["If not weekly which of you has the children the rest of the time"] = p.get("schedule_rest_of_time", "")
     text["Where"] = p.get("dropoff_location", "")
     text["When time and day"] = p.get("dropoff_time", "")
@@ -368,22 +388,22 @@ def _pp_build_dc_fields(p):
     text["When time and day_2"] = p.get("pickup_time", "")
     text["If one of you doesnt show up how long will the other wait"] = p.get("no_show_wait", "")
     text["If there are extraordinary costs taxi train plane etc who will pay for which costs 1"] = p.get("extraordinary_costs", "")
- 
+
     holidays = p.get("holidays", {})
     for key, choice in holidays.items():
         base = _DC_HOLIDAY_FIELD_MAP.get(key.lower())
         if not base:
             continue
-        choice = _pp_str(choice)
-        who, _, when = choice.partition(" — ")
+        who, when = _pp_split_holiday_choice(choice)
         who_name = p.get("parent1_name") if who.lower().startswith("me") else p.get("parent2_name")
         if "every year" in when.lower():
             text[f"Every Year{base}"] = who_name
-        else:
+        elif "even" in when.lower() or "odd" in when.lower():
             text[f"Year A{base}"] = who_name
- 
+        # else: unrecognized/blank "when" -> leave this holiday blank rather than guessing
+
     text["Text42"] = p.get("summer_vacation_detail", "")
- 
+
     payer = _pp_str(p.get("child_support_payer")).lower()
     if payer in ("plaintiff", "me"):
         boxes[_DC_CHILD_SUPPORT_PAYER["plaintiff"]] = True
@@ -393,7 +413,7 @@ def _pp_build_dc_fields(p):
     if freq2 in _DC_CHILD_SUPPORT_FREQUENCY:
         boxes[_DC_CHILD_SUPPORT_FREQUENCY[freq2]] = True
     text["undefined_7"] = p.get("child_support_amount", "")
- 
+
     expense_field_map = {
         "health insurance premium": "Health Insurance Coverage",
         "medical co-pays": "Medical Care including copays",
@@ -422,7 +442,7 @@ def _pp_build_dc_fields(p):
             mother_val = father_val = p.get("expenses_other_pct_detail", "")
         text[f"Mother amount or {base}"] = mother_val
         text[f"Father  amount or {base}"] = father_val  # real field name has two spaces after "Father"
- 
+
     dependent_claim = _pp_str(p.get("tax_dependent_claim")).lower()
     if "alternat" in dependent_claim:
         text["Other"] = "Alternating years"
@@ -432,7 +452,7 @@ def _pp_build_dc_fields(p):
         boxes[_DC_TAX_DEDUCTION_DEFENDANT["every year"]] = True
     else:
         text["Other"] = p.get("tax_dependent_claim", "")
- 
+
     college = _pp_str(p.get("college_expenses")).lower()
     if "one parent pays all" in college:
         boxes[_DC_COLLEGE["plaintiff pays all"]] = True
@@ -442,40 +462,40 @@ def _pp_build_dc_fields(p):
     else:
         boxes[_DC_COLLEGE["other"]] = True
         text["these must add up to 100"] = p.get("college_expenses", "")
- 
+
     return text, boxes
- 
- 
+
+
 def _pp_build_md_fields(p):
     text = {}
     boxes = {}
- 
+
     boxes["Joint parenting plan of"] = True
     text["Name of Party 1"] = p.get("parent1_name")
-    text["Party 1 Relationship to Child(ren)"] = "Parent"
+    text["Party 1 Relationship to Child(ren)"] = _pp_relationship_label(p.get("client_gender"))
     text["Name of Party 2"] = p.get("parent2_name")
-    text["Party 2 Relationship to Child(ren)"] = "Parent"
+    text["Party 2 Relationship to Child(ren)"] = _pp_relationship_label(p.get("spouse_gender"))
     boxes["Initial Pleading"] = True
- 
+
     text["Party 1 Full Name"] = p.get("parent1_name")
     street1, csz1 = _pp_split_address(p.get("parent1_address"))
     text["Party 1 Street Address"] = street1
     text["Party 1 City, State, Zip"] = csz1
     text["Party 1 Telephone"] = p.get("parent1_phone", "")
     text["Party 1 E-mail"] = p.get("parent1_email", "")
- 
+
     text["Party 2 Full Name"] = p.get("parent2_name")
     street2, csz2 = _pp_split_address(p.get("parent2_address"))
     text["Party 2 Street Address"] = street2
     text["Party 2 City, State, Zip"] = csz2
     text["Party 2 Telephone"] = p.get("parent2_phone", "")
     text["Party 2 E-mail"] = p.get("parent2_email", "")
- 
+
     kids = _pp_parse_children(p.get("children_raw"))
     for i, kid in enumerate(kids[:6], start=1):
         text[f"Child {i} Name"] = kid["name"]
         text[f"Child {i} Date of Birth"] = kid["dob"]
- 
+
     lc_type = _pp_str(p.get("legal_custody_type")).lower()
     if "joint" in lc_type:
         boxes["Shared parental responsibility"] = True
@@ -485,7 +505,7 @@ def _pp_build_md_fields(p):
     elif lc_type.startswith("sole legal to my spouse"):
         boxes["Sole parenting responsibility"] = True
         text["Name of Person who will make major decisions for the child(ren)"] = p.get("parent2_name")
- 
+
     lc_final_say = p.get("legal_custody_final_say", {})
     category_field = {
         "medical_care": "medical care", "mental_health_care": "mental health",
@@ -505,7 +525,7 @@ def _pp_build_md_fields(p):
             text[f"Name of Person for tie-breaking authority of {suffix}"] = name
     if any_tiebreak:
         boxes["Shared parental responsibility with decision-making authority"] = True
- 
+
     schedule = p.get("regular_schedule", {})
     days_with_parent1 = [d for d, v in schedule.items() if _pp_str(v).lower() == "me"]
     days_with_parent2 = [d for d, v in schedule.items() if _pp_str(v).lower() in ("my spouse", "spouse")]
@@ -516,32 +536,32 @@ def _pp_build_md_fields(p):
         boxes["Weekdays for Party 2"] = True
         text["List days for Party 2"] = ", ".join(d.title() for d in days_with_parent2)
         text["Party 2 Name"] = p.get("parent2_name")
- 
+
     freq = _pp_str(p.get("schedule_frequency")).lower()
     if freq == "every two weeks":
         text["List Other Issues 1"] = "Regular schedule alternates every two weeks."
     elif freq == "other":
         text["List Other Issues 1"] = p.get("schedule_frequency_detail", "")
- 
+
     text["List Other Transportation"] = p.get("dropoff_location", "")
     boxes["Exchanges will occur at"] = bool(p.get("dropoff_location"))
     text["List Location/place exchanges will occur at"] = p.get("dropoff_location", "")
     text["List Other exchanges of the child(ren)"] = p.get("no_show_wait", "")
- 
+
     holidays = p.get("holidays", {})
     for key, choice in holidays.items():
         base = _MD_HOLIDAY_FIELD_MAP.get(key.lower())
         if not base:
             continue
-        choice = _pp_str(choice)
-        who, _, when = choice.partition(" — ")
+        who, when = _pp_split_holiday_choice(choice)
         who_name = p.get("parent1_name") if who.lower().startswith("me") else p.get("parent2_name")
         if "every year" in when.lower():
             text[f"{base} Every Year"] = who_name
-        else:
+        elif "even" in when.lower() or "odd" in when.lower():
             text[f"{base} Even Years"] = who_name
+        # else: unrecognized/blank "when" -> leave this holiday blank rather than guessing
     boxes["Holiday parenting time will follow the schedule below. It will take priority over the regular weekday, weekend, and summer schedules"] = bool(holidays)
- 
+
     breaks = _pp_str(p.get("breaks_handling")).lower()
     if "follow the regular" in breaks:
         boxes["We will follow the regular weekday and weekend schedule for winter break"] = True
@@ -553,7 +573,7 @@ def _pp_build_md_fields(p):
     elif breaks:
         boxes["We will divide winter breaks as follows"] = True
         text["Explain how you will divide winter breaks"] = p.get("breaks_detail", "")
- 
+
     schooling = _pp_str(p.get("schooling_type")).lower()
     if schooling == "public school":
         boxes["Attend public school"] = True
@@ -565,25 +585,25 @@ def _pp_build_md_fields(p):
     elif schooling:
         boxes["Other Schooling"] = True
         text["List other Schooling"] = p.get("schooling_type", "")
- 
+
     transport = _pp_str(p.get("extracurricular_transport")).lower()
     if "scheduled time" in transport:
         boxes["Each of us agrees that extracurricular activities may occur during each party's scheduled parenting time"] = True
     elif transport:
         boxes["Each of us agrees as to the following extracurricular activities"] = True
         text["List Extracurricular activities"] = p.get("extracurricular_transport", "")
- 
+
     text["Number of Hours"] = p.get("childcare_notice_hours", "")
     if p.get("childcare_notice_hours"):
         boxes["Each of us must offer the other party/parties the opportunity to care for the child(ren) before using a child care provider for any period exceeding"] = True
- 
+
     text["Number of days' written notice must be given before traveling out of state"] = p.get("travel_notice_domestic_days", "")
     if p.get("travel_notice_domestic_days"):
         boxes["Each of us may travel within the United States with the child(ren) during our parenting time/vacation"] = True
     text["Number of days' written notice must be given before traveling out of the country"] = p.get("travel_notice_intl_days", "")
     if p.get("travel_notice_intl_days"):
         boxes["Each of us may travel out of the country with the child(ren) during our parenting time/vacation"] = True
- 
+
     mediation = _pp_str(p.get("mediation_agreement")).lower()
     if mediation == "yes":
         boxes["We agree to attend mediation session(s) before asking the court to intervene"] = True
@@ -591,79 +611,79 @@ def _pp_build_md_fields(p):
     elif mediation and mediation != "no":
         boxes["Other Disputes"] = True
         text["List Other Disputes"] = p.get("mediation_agreement", "")
- 
+
     if _pp_str(p.get("domestic_abuse_flag")).lower() == "yes":
         boxes["Allegation of domestic abuse"] = True
- 
+
     return text, boxes
- 
- 
+
+
 def _pp_write_pdf(template_path, field_data, checkbox_values, filename_prefix):
     reader = PdfReader(template_path)
     writer = PdfWriter()
- 
+
     writer.clone_reader_document_root(reader)
     writer.set_need_appearances_writer(True)
- 
+
     clean_text = {k: v for k, v in field_data.items() if _pp_str(v)}
     for page in writer.pages:
         writer.update_page_form_field_values(page, clean_text)
- 
+
     checked = {k: "/Yes" for k, v in checkbox_values.items() if v}
     for page in writer.pages:
         writer.update_page_form_field_values(page, checked)
- 
+
     output = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     output.close()
     with open(output.name, "wb") as f:
         writer.write(f)
- 
+
     filename = filename_prefix + "_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".pdf"
     return output.name, filename
- 
- 
+
+
 # ---------------------------------------------------------------------
 # PARENTING PLAN — routes
 # ---------------------------------------------------------------------
- 
+
 @app.route("/fill-parenting-plan-dc", methods=["POST"])
 def fill_parenting_plan_dc():
     try:
         data = request.json or {}
         if _pp_str(data.get("domestic_abuse_flag")).lower() == "yes":
             return jsonify({"error": "Domestic abuse / supervised parenting time flagged — route to Attorney Mohammed, do not auto-draft."}), 409
- 
+
         text, boxes = _pp_build_dc_fields(data)
         path, filename = _pp_write_pdf(TEMPLATE_PDF_PP_DC, text, boxes, "DC_Parenting_Plan")
- 
+
         return send_file(path, as_attachment=True, download_name=filename, mimetype="application/pdf")
     except Exception as e:
         return jsonify({"error": str(e)}), 500
- 
- 
+
+
 @app.route("/fill-parenting-plan-md", methods=["POST"])
 def fill_parenting_plan_md():
     try:
         data = request.json or {}
         if _pp_str(data.get("domestic_abuse_flag")).lower() == "yes":
             return jsonify({"error": "Domestic abuse / supervised parenting time flagged — route to Attorney Mohammed, do not auto-draft."}), 409
- 
+
         text, boxes = _pp_build_md_fields(data)
         path, filename = _pp_write_pdf(TEMPLATE_PDF_PP_MD, text, boxes, "MD_Parenting_Plan")
- 
+
         return send_file(path, as_attachment=True, download_name=filename, mimetype="application/pdf")
     except Exception as e:
         return jsonify({"error": str(e)}), 500
- 
- 
+
+
 # Debug routes matching your existing /list-fields pattern
 @app.route("/list-parenting-plan-dc-fields", methods=["GET"])
 def list_parenting_plan_dc_fields():
     reader = PdfReader(TEMPLATE_PDF_PP_DC)
     fields = reader.get_fields()
     return jsonify(list(fields.keys()))
- 
- 
+
+
 @app.route("/list-parenting-plan-md-fields", methods=["GET"])
 def list_parenting_plan_md_fields():
     reader = PdfReader(TEMPLATE_PDF_PP_MD)
