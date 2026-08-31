@@ -208,11 +208,7 @@ def fill_tod_deed():
         return jsonify({"error": str(e)}), 500
 
 
-===========================================================================
-Add this whole block anywhere in app.py (e.g. right after the
-fill_tod_deed() route, before "# HELPERS"). It's self-contained.
-===========================================================================
- 
+
 import re
  
 # ---------------------------------------------------------------------
