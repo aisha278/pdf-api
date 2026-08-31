@@ -11,7 +11,7 @@ app = Flask(__name__)
 TEMPLATE_PDF_GUARDIAN = "ccgn041prefilled.pdf"
 TEMPLATE_PDF_INVOICE  = "2026AMohammedAAPInvoicetemplate.pdf"
 TEMPLATE_PDF_TOD      = "ROD39REVOCABLETRANSFERONDEATHDEED-FORM_editable.pdf"
-EMPLATE_PDF_PP_DC = "DCcustody_parenting_plan_fillable.pdf"
+TEMPLATE_PDF_PP_DC = "DCcustody_parenting_plan_fillable.pdf"
 TEMPLATE_PDF_PP_MD = "ccdr109md parenting plan_fillable.pdf"   # <-- has spaces, verify against your repo listing
 
 
