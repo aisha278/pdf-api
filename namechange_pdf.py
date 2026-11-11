@@ -22,6 +22,9 @@ turns those into separate boxes named "Name#0", "Name#1", ... in reading order
 import io
 import json
 import os
+import platform
+import sys
+import traceback
 
 from flask import Blueprint, Response, abort, jsonify, request
 from pypdf import PdfReader, PdfWriter
@@ -306,6 +309,46 @@ def fields(form):
     return jsonify(list_fields(form))
 
 
+def _err_info(e):
+    """Short, readable description of an exception: type, message and where it happened."""
+    tb = traceback.extract_tb(e.__traceback__)
+    where = ""
+    if tb:
+        fr = tb[-1]
+        where = f" @ {os.path.basename(fr.filename)}:{fr.lineno} in {fr.name}"
+    return f"{type(e).__name__}: {e}{where}"
+
+
+@namechange_bp.route("/selftest/<form>")
+def selftest(form):
+    """Open in a browser: fills the form with no data and reports success or the exact error."""
+    if not _api_key_ok():
+        abort(401)
+    info = {"form": form, "python": platform.python_version()}
+    try:
+        import pypdf
+        info["pypdf"] = pypdf.__version__
+    except Exception:  # pragma: no cover
+        pass
+    info["reportlab"] = "installed" if _sw else "MISSING (text will not shrink-to-fit)"
+    if form not in FORMS:
+        info["error"] = f"Unknown form '{form}'"
+        return jsonify(info), 404
+    path = os.path.join(TEMPLATE_DIR, FORMS[form])
+    info["template_exists"] = os.path.exists(path)
+    info["template_bytes"] = os.path.getsize(path) if info["template_exists"] else 0
+    try:
+        pdf, warnings = fill_form(form, {}, {})
+        info["ok"] = True
+        info["filled_bytes"] = len(pdf)
+        return jsonify(info)
+    except Exception as e:
+        info["ok"] = False
+        info["error"] = _err_info(e)
+        info["traceback"] = traceback.format_exc()[-1800:]
+        return jsonify(info), 500
+
+
 @namechange_bp.route("/fill-form", methods=["POST"])
 def fill_form_route():
     if not _api_key_ok():
@@ -314,7 +357,11 @@ def fill_form_route():
     form = data.get("form")
     if form not in FORMS:
         return jsonify(error=f"Unknown form '{form}'", forms=sorted(FORMS)), 400
-    pdf, warnings = fill_form(form, data.get("text"), data.get("checks"))
+    try:
+        pdf, warnings = fill_form(form, data.get("text"), data.get("checks"))
+    except Exception as e:
+        print("FILL FAILED", form, traceback.format_exc(), file=sys.stderr, flush=True)
+        return jsonify(error=_err_info(e), form=form), 500
     resp = Response(pdf, mimetype="application/pdf")
     resp.headers["X-Fill-Warnings"] = json.dumps(warnings)[:3000]
     return resp
