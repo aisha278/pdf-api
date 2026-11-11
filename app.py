@@ -7,6 +7,10 @@ from datetime import datetime
 
 app = Flask(__name__)
 
+# --- Name change forms (CC-DR-060, CC-DR-097, CC-FM-072, CC-DC-053, DC adult name change, SS-5) ---
+from namechange_pdf import namechange_bp
+app.register_blueprint(namechange_bp)
+
 # --- FILES ---
 TEMPLATE_PDF_GUARDIAN = "ccgn041prefilled.pdf"
 TEMPLATE_PDF_INVOICE  = "2026AMohammedAAPInvoicetemplate.pdf"
